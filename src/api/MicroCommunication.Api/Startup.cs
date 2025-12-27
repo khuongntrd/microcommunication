@@ -199,10 +199,6 @@ namespace MicroCommunication.Api
                 endpoints.MapHealthChecks("/healthz");
                 endpoints.MapHub<ChatHub>("/chat");
             });
-
-
-
-
         }
     }
 }

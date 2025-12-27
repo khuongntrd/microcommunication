@@ -17,19 +17,21 @@ spec:
       labels:
         app: web
     spec:
+      imagePullSecrets:
+        - name: ghcr-registry-secret
       containers:
         - name: microcommunication-web
           image: {{ .Values.web.image }}:{{ .Values.web.tag }}
           imagePullPolicy: Always
           env:
             - name: API_URL
-              value: {{ .Values.web.config.apiUrl }}
+              value: https://api.{{ .Values.ingress.domain }}
           ports:
             - containerPort: 8080
           resources:
             requests:
               memory: "64Mi"
-              cpu: "250m"
+              cpu: "100m"
             limits:
               memory: "128Mi"
-              cpu: "500m"
+              cpu: "125m"

@@ -4,10 +4,21 @@ kind: Ingress
 metadata:
   name: microcommunication
   annotations:
-    kubernetes.io/ingress.class: {{ .Values.ingress.class }}
-    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "*"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "false"
 spec:
+  ingressClassName: {{ .Values.ingress.class }}
+
+  tls:
+    - hosts:
+        - api.{{ .Values.ingress.domain }}
+        - app.{{ .Values.ingress.domain }}
+      secretName: microcommunication-tls
   rules:
     - host: api.{{ .Values.ingress.domain }}
       http:

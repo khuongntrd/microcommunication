@@ -21,6 +21,8 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: "8090"
     spec:
+      imagePullSecrets:
+        - name: ghcr-registry-secret
       containers:
         - name: microcommunication-random
           image: {{ .Values.random.image }}:{{ .Values.random.tag }}
@@ -36,7 +38,7 @@ spec:
           resources:
             requests:
               memory: "64Mi"
-              cpu: "125m"
+              cpu: "100m"
             limits:
               memory: "256Mi"
-              cpu: "500m"
+              cpu: "125m"

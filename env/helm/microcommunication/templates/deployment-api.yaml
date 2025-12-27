@@ -21,6 +21,8 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: "8080"
     spec:
+      imagePullSecrets:
+        - name: ghcr-registry-secret
       containers:
         - name: microcommunication-api
           image: {{ .Values.api.image }}:{{ .Values.api.tag }}
@@ -29,7 +31,9 @@ spec:
             - containerPort: 8080
           env:
             - name: "Cors"
-              value: "https://app.yourdomain.com"
+              value: "https://app.{{ .Values.ingress.domain }}"
+            - name: RandomApiUrl
+              value: "http://random:8090"
             - name: "RedisCacheConnectionString"
               valueFrom:
                 secretKeyRef:
@@ -38,7 +42,7 @@ spec:
           resources:
             requests:
               memory: "64Mi"
-              cpu: "125m"
+              cpu: "100m"
             limits:
               memory: "256Mi"
-              cpu: "500m"
+              cpu: "125m"

@@ -8,28 +8,107 @@ on:
       - .github/workflows/**
 jobs:
   build:
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
       - name: Pull source code
         uses: actions/checkout@v1
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build API image
-        run: docker build src/api/ --file src/api/Dockerfile --tag robinmanuelthiel/microcommunication-api:${{ github.run_id }}.${{ github.run_attempt }} --tag robinmanuelthiel/microcommunication-api:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: src/api
+          file: src/api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/microcommunication-api:${{ github.run_id }}.${{ github.run_attempt }}
+            ghcr.io/${{ github.repository_owner }}/microcommunication-api:latest
+          cache-from: type=gha,scope=api-${{ github.ref_name }}
+          cache-to: type=gha,scope=api-${{ github.ref_name }},mode=max
 
       - name: Build Random image
-        run: docker build src/random/ --file src/random/Dockerfile --tag robinmanuelthiel/microcommunication-random:${{ github.run_id }}.${{ github.run_attempt }} --tag robinmanuelthiel/microcommunication-random:latest
+        uses: docker/build-push-action@v5
+        with:
+          context: src/random
+          file: src/random/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/microcommunication-random:${{ github.run_id }}.${{ github.run_attempt }}
+            ghcr.io/${{ github.repository_owner }}/microcommunication-random:latest
+          cache-from: |
+            type=gha,scope=random-${{ github.ref_name }}
+            type=gha,scope=random-main
+          cache-to: type=gha,scope=random-${{ github.ref_name }},mode=max
 
       - name: Build Web image
-        run: docker build src/web/ --file src/web/Dockerfile --tag robinmanuelthiel/microcommunication-web:${{ github.run_id }}.${{ github.run_attempt }} --tag robinmanuelthiel/microcommunication-web:latest
+        uses: docker/build-push-action@v5
+        with:
+          context: src/web
+          file: src/web/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/microcommunication-web:${{ github.run_id }}.${{ github.run_attempt }}
+            ghcr.io/${{ github.repository_owner }}/microcommunication-web:latest
+          cache-from: |
+            type=gha,scope=web-${{ github.ref_name }}
+            type=gha,scope=web-main
+          cache-to: type=gha,scope=web-${{ github.ref_name }},mode=max
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: test
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Login to Docker Hub
-        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+      - name: Set up Azure CLI
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Push API image
-        run: docker push robinmanuelthiel/microcommunication-api --all-tags
+      - name: Deploy to Kubernetes cluster
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
 
-      - name: Push Random image
-        run: docker push robinmanuelthiel/microcommunication-random --all-tags
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
 
-      - name: Push Web image
-        run: docker push robinmanuelthiel/microcommunication-web --all-tags
+      - name: Helm upgrade microcommunication
+        working-directory: ./env/helm/microcommunication
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          helm dependency build
+          helm upgrade --install microcommunication . \
+            --set api.image=ghcr.io/${{ github.repository_owner }}/microcommunication-api \
+            --set api.tag=${{ github.run_id }}.${{ github.run_attempt }} \
+            --set random.image=ghcr.io/${{ github.repository_owner }}/microcommunication-random \
+            --set random.tag=${{ github.run_id }}.${{ github.run_attempt }} \
+            --set web.image=ghcr.io/${{ github.repository_owner }}/microcommunication-web \
+            --set web.tag=${{ github.run_id }}.${{ github.run_attempt }} \
+            --set ingress.domain=${{ vars.MC_DOMAIN }} \
+            --set mongodb.auth.rootPassword=${{ secrets.MC_MONGODB_ROOT_PASSWORD }} \
+            --set redis.auth.password=${{ secrets.MC_REDIS_PASSWORD }} \
+            --set api.config.signalR.redisCacheConnectionString="redis-master:6379\,ssl=false\,password=${{ secrets.MC_REDIS_PASSWORD }}" \
+            --set random.config.database.mongoDbConnectionString="mongodb://root:${{ secrets.MC_MONGODB_ROOT_PASSWORD }}@mongodb:27017" \
+            --namespace default --create-namespace

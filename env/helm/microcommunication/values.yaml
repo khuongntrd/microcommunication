@@ -1,7 +1,7 @@
 ingress:
   enabled: true
-  domain: your.domain.com
-  class: nginx
+  domain: yourdomain.com
+  class: azure-application-gateway
 
 api:
   image: robinmanuelthiel/microcommunication-api
@@ -9,17 +9,42 @@ api:
   config:
     apiKey: ""
     signalR:
-      redisCacheConnectionString: ""
+      redisCacheConnectionString: "redis://:password@redis:6379"
 
 random:
   image: robinmanuelthiel/microcommunication-random
   tag: latest
   config:
     database:
-      mongoDbConnectionString: ""
+      mongoDbConnectionString: "mongodb://root:password@mongodb:27017"
 
 web:
   image: robinmanuelthiel/microcommunication-web
   tag: latest
-  config:
-    apiUrl: ""
+
+global:
+  security:
+    allowInsecureImages: true
+
+mongodb:
+ fullnameOverride: mongodb
+ auth:
+  rootPassword: "password"
+ security:
+  allowInsecureImages: true
+ image:
+    registry: docker.io
+    repository: bitnamilegacy/mongodb
+    tag: 8.0.13-debian-12-r0
+
+redis:
+ fullnameOverride: redis
+ auth:
+  password: "password"
+ security:
+  allowInsecureImages: true
+ architecture: standalone
+ image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 8.2.1-debian-12-r0
