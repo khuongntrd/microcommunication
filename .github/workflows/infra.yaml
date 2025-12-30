@@ -37,11 +37,13 @@ jobs:
   helms-blue:
     needs: iac
     uses: ./.github/workflows/infra-helms.yaml
+    secrets: inherit
     with:
       environment: blue
 
   helms-green:
     needs: iac
     uses: ./.github/workflows/infra-helms.yaml
+    secrets: inherit
     with:
       environment: green
