@@ -75,8 +75,8 @@ jobs:
           file: src/api/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/${{ github.repository_owner }}/microcommunication-api:${{ needs.determine-version.outputs.version }}
-            ${{ env.ACR_LOGIN_SERVER }}/${{ github.repository_owner }}/microcommunication-api:latest
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-api:${{ needs.determine-version.outputs.version }}
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-api:latest
           cache-from: type=gha,scope=api-${{ github.ref_name }}
           cache-to: type=gha,scope=api-${{ github.ref_name }},mode=max
 
