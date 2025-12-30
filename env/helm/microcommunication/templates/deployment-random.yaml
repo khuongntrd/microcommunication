@@ -21,8 +21,6 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: "8090"
     spec:
-      imagePullSecrets:
-        - name: ghcr-registry-secret
       containers:
         - name: microcommunication-random
           image: {{ .Values.random.image }}:{{ .Values.random.tag }}

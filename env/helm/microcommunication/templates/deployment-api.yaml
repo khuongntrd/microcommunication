@@ -21,8 +21,6 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: "8080"
     spec:
-      imagePullSecrets:
-        - name: ghcr-registry-secret
       containers:
         - name: microcommunication-api
           image: {{ .Values.api.image }}:{{ .Values.api.tag }}
