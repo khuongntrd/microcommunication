@@ -1,11 +1,6 @@
 name: Deploy Infrastructure
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - infra/**
-      - .github/workflows/**
+  workflow_dispatch:
 
 jobs:
   iac:

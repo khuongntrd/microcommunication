@@ -10,18 +10,26 @@ jobs:
   build:
     permissions:
       contents: read
-      packages: write
     runs-on: ubuntu-latest
+    env:
+      ACR_LOGIN_SERVER: ${{ vars.ACR_NAME }}.azurecr.io
     steps:
       - name: Pull source code
         uses: actions/checkout@v1
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Set up Azure CLI
+        uses: azure/login@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ github.token }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az acr login --name ${{ vars.ACR_NAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -33,8 +41,8 @@ jobs:
           file: src/api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/microcommunication-api:${{ github.run_id }}.${{ github.run_attempt }}
-            ghcr.io/${{ github.repository_owner }}/microcommunication-api:latest
+            ${{ env.ACR_LOGIN_SERVER }}/${{ github.repository_owner }}/microcommunication-api:${{ github.run_id }}.${{ github.run_attempt }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ github.repository_owner }}/microcommunication-api:latest
           cache-from: type=gha,scope=api-${{ github.ref_name }}
           cache-to: type=gha,scope=api-${{ github.ref_name }},mode=max
 
@@ -45,8 +53,8 @@ jobs:
           file: src/random/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/microcommunication-random:${{ github.run_id }}.${{ github.run_attempt }}
-            ghcr.io/${{ github.repository_owner }}/microcommunication-random:latest
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-random:${{ github.run_id }}.${{ github.run_attempt }}
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-random:latest
           cache-from: |
             type=gha,scope=random-${{ github.ref_name }}
             type=gha,scope=random-main
@@ -59,56 +67,56 @@ jobs:
           file: src/web/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/microcommunication-web:${{ github.run_id }}.${{ github.run_attempt }}
-            ghcr.io/${{ github.repository_owner }}/microcommunication-web:latest
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-web:${{ github.run_id }}.${{ github.run_attempt }}
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-web:latest
           cache-from: |
             type=gha,scope=web-${{ github.ref_name }}
             type=gha,scope=web-main
           cache-to: type=gha,scope=web-${{ github.ref_name }},mode=max
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment: test
-    permissions:
-      contents: read
-      id-token: write
-      packages: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   environment: test
+  #   permissions:
+  #     contents: read
+  #     id-token: write
+  #     packages: read
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
 
-      - name: Set up Azure CLI
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #     - name: Set up Azure CLI
+  #       uses: azure/login@v2
+  #       with:
+  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
+  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to Kubernetes cluster
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
-          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+  #     - name: Deploy to Kubernetes cluster
+  #       uses: azure/aks-set-context@v4
+  #       with:
+  #         resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+  #         cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
+  #     - name: Set up Helm
+  #       uses: azure/setup-helm@v4
 
-      - name: Helm upgrade microcommunication
-        working-directory: ./env/helm/microcommunication
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo update
-          helm dependency build
-          helm upgrade --install microcommunication . \
-            --set api.image=ghcr.io/${{ github.repository_owner }}/microcommunication-api \
-            --set api.tag=${{ github.run_id }}.${{ github.run_attempt }} \
-            --set random.image=ghcr.io/${{ github.repository_owner }}/microcommunication-random \
-            --set random.tag=${{ github.run_id }}.${{ github.run_attempt }} \
-            --set web.image=ghcr.io/${{ github.repository_owner }}/microcommunication-web \
-            --set web.tag=${{ github.run_id }}.${{ github.run_attempt }} \
-            --set ingress.domain=${{ vars.MC_DOMAIN }} \
-            --set mongodb.auth.rootPassword=${{ secrets.MC_MONGODB_ROOT_PASSWORD }} \
-            --set redis.auth.password=${{ secrets.MC_REDIS_PASSWORD }} \
-            --set api.config.signalR.redisCacheConnectionString="redis-master:6379\,ssl=false\,password=${{ secrets.MC_REDIS_PASSWORD }}" \
-            --set random.config.database.mongoDbConnectionString="mongodb://root:${{ secrets.MC_MONGODB_ROOT_PASSWORD }}@mongodb:27017" \
-            --namespace default --create-namespace
+  #     - name: Helm upgrade microcommunication
+  #       working-directory: ./env/helm/microcommunication
+  #       run: |
+  #         helm repo add bitnami https://charts.bitnami.com/bitnami
+  #         helm repo update
+  #         helm dependency build
+  #         helm upgrade --install microcommunication . \
+  #           --set api.image=ghcr.io/${{ github.repository_owner }}/microcommunication-api \
+  #           --set api.tag=${{ github.run_id }}.${{ github.run_attempt }} \
+  #           --set random.image=ghcr.io/${{ github.repository_owner }}/microcommunication-random \
+  #           --set random.tag=${{ github.run_id }}.${{ github.run_attempt }} \
+  #           --set web.image=ghcr.io/${{ github.repository_owner }}/microcommunication-web \
+  #           --set web.tag=${{ github.run_id }}.${{ github.run_attempt }} \
+  #           --set ingress.domain=${{ vars.MC_DOMAIN }} \
+  #           --set mongodb.auth.rootPassword=${{ secrets.MC_MONGODB_ROOT_PASSWORD }} \
+  #           --set redis.auth.password=${{ secrets.MC_REDIS_PASSWORD }} \
+  #           --set api.config.signalR.redisCacheConnectionString="redis-master:6379\,ssl=false\,password=${{ secrets.MC_REDIS_PASSWORD }}" \
+  #           --set random.config.database.mongoDbConnectionString="mongodb://root:${{ secrets.MC_MONGODB_ROOT_PASSWORD }}@mongodb:27017" \
+  #           --namespace default --create-namespace
