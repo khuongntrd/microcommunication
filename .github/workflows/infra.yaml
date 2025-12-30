@@ -9,33 +9,32 @@ on:
       - infra/**
       - .github/workflows/**
 jobs:
-  iac:
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pull source code
-        uses: actions/checkout@v5
-      - name: Set up Azure CLI
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Deploy AKS infrastructure
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az deployment group create \
-                --resource-group ${{ vars.AKS_RESOURCE_GROUP }} \
-                --template-file infra/main.bicep \
-                --parameters linuxAdminUsername=${{ vars.AKS_LINUX_ADMIN_USERNAME }} sshRSAPublicKey="${{ secrets.AKS_SSH_RSA_PUBLIC_KEY }}"
+  # iac:
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #     id-token: write
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Pull source code
+  #       uses: actions/checkout@v5
+  #     - name: Set up Azure CLI
+  #       uses: azure/login@v2
+  #       with:
+  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
+  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #     - name: Deploy AKS infrastructure
+  #       uses: azure/cli@v2
+  #       with:
+  #         azcliversion: latest
+  #         inlineScript: |
+  #           az deployment group create \
+  #               --resource-group ${{ vars.AKS_RESOURCE_GROUP }} \
+  #               --template-file infra/main.bicep \
+  #               --parameters linuxAdminUsername=${{ vars.AKS_LINUX_ADMIN_USERNAME }} sshRSAPublicKey="${{ secrets.AKS_SSH_RSA_PUBLIC_KEY }}"
 
   helms-blue:
-    needs: iac
     uses: ./.github/workflows/infra-helms.yaml
     secrets: inherit
     with:

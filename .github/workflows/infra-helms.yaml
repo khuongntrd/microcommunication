@@ -50,8 +50,9 @@ jobs:
           helm upgrade --install istio-ingress istio/gateway -n istio-ingress \
             --set service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz/ready \
             --set service.annotations."service\.beta\.kubernetes\.io/port_80_health-probe_protocol"=http \
-            --set service.annotations."service\.beta\.kubernetes\.io/port_80_health-probe_port"="15021"
-            
+            --set service.annotations."service\.beta\.kubernetes\.io/port_80_health-probe_port"="15021" \
+            --set service.annotations."service\.beta\.kubernetes\.io/port_443_health-probe_protocol"=http \
+            --set service.annotations."service\.beta\.kubernetes\.io/port_443_health-probe_port"="15021" \
             --create-namespace
 
       - name: Helm cert-manager
