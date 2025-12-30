@@ -79,6 +79,7 @@ resource newAgentPool 'Microsoft.ContainerService/managedClusters/agentPools@202
     osType: 'Linux'
     minCount: 0
     maxCount: 2
+    enableAutoScaling: true
     availabilityZones: ['2']
     mode: 'User' // Use 'User' for non-system pools
     // ...
