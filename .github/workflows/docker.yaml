@@ -109,14 +109,14 @@ jobs:
 
   deploy-green:
     needs: [build, determine-version]
-    uses: .github/workflows/deploy.yaml
+    uses: ./.github/workflows/deploy.yaml
     with:
       environment: green
       version: ${{ needs.determine-version.outputs.version }}
 
   deploy-blue:
     needs: [build, determine-version, deploy-green]
-    uses: .github/workflows/deploy.yaml
+    uses: ./.github/workflows/deploy.yaml
     with:
       environment: blue
       version: ${{ needs.determine-version.outputs.version }}
