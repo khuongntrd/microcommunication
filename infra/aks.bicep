@@ -84,7 +84,7 @@ resource aksToAcrRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04
   name: guid(aks.id, 'AcrPullRoleAssignment', acrPullRoleDefinitionID)
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', acrPullRoleDefinitionID)
-    principalId: aks.identity.principalId
+    principalId: aks.properties.identityProfile.kubeletidentity.objectId
   }
 }
 
@@ -93,7 +93,7 @@ resource askToDnsContributorRoleAssignment 'Microsoft.Authorization/roleAssignme
   name: guid(aks.id, 'DNSContributorRoleAssignment', dnsContributorRoleDefinitionID)
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', dnsContributorRoleDefinitionID)
-    principalId: aks.identity.principalId
+    principalId: aks.properties.identityProfile.kubeletidentity.objectId
   }
 }
 
