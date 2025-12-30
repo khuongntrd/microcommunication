@@ -13,7 +13,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.set-version.outputs.version }}
+      version: ${{ steps.set-version.outputs.semVer }}
     steps:
       - name: Pull source code
         uses: actions/checkout@v5
@@ -30,6 +30,14 @@ jobs:
         uses: gittools/actions/gitversion/execute@v4.2.0
         with:
           configFilePath: .github/VersionConfig.yml
+
+      - name: Display GitVersion outputs
+        run: |
+          echo "MajorMinorPatch: ${{ steps.set-version.outputs.majorMinorPatch }}"
+          echo "SemVer: ${{ steps.set-version.outputs.semVer }}"
+          echo "FullSemVer: ${{ steps.set-version.outputs.fullSemVer }}"
+          echo "BranchName: ${{ steps.set-version.outputs.branchName }}"
+          # You can access many other variables this way
 
   build:
     permissions:
