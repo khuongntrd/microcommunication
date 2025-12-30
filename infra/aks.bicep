@@ -26,6 +26,15 @@ param linuxAdminUsername string
 @description('Configure all linux machines with the SSH RSA public key string. Your key should include three parts, for example \'ssh-rsa AAAAB...snip...UcyupgH azureuser@linuxvm\'')
 param sshRSAPublicKey string
 
+@description('The name of the Azure Container Registry to integrate with the AKS cluster.')
+param acrName string
+
+@description('The name of the DNS Zone to which the AKS cluster will have access.')
+param dnsZoneName string
+
+var acrPullRoleDefinitionID = '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull Role Definition ID
+var dnsContributorRoleDefinitionID = 'befefa01-2a29-4197-83a8-272ff33ce314' // DNS Zone Contributor Role Definition ID
+
 resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
   name: clusterName
   location: location
@@ -34,6 +43,11 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
   }
   properties: {
     dnsPrefix: dnsPrefix
+    securityProfile: {
+      workloadIdentity: {
+        enabled: true
+      }
+    }
     agentPoolProfiles: [
       {
         name: 'agentpool'
@@ -54,6 +68,32 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         ]
       }
     }
+  }
+}
+
+resource acr 'Microsoft.ContainerRegistry/registries@2025-11-01' existing = {
+  name: acrName
+}
+
+resource dnsZone 'Microsoft.Network/dnsZones@2023-07-01-preview' existing = {
+  name: dnsZoneName
+}
+
+resource aksToAcrRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: acr
+  name: guid(aks.id, 'AcrPullRoleAssignment', acrPullRoleDefinitionID)
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', acrPullRoleDefinitionID)
+    principalId: aks.identity.principalId
+  }
+}
+
+resource askToDnsContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: dnsZone
+  name: guid(aks.id, 'DNSContributorRoleAssignment', dnsContributorRoleDefinitionID)
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', dnsContributorRoleDefinitionID)
+    principalId: aks.identity.principalId
   }
 }
 
