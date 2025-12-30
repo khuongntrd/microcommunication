@@ -3,14 +3,40 @@ on:
   push:
     branches:
       - main
+      - develop
     paths:
       - src/**
       - .github/workflows/**
 jobs:
-  build:
+  determine-version:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+    steps:
+      - name: Pull source code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.2.0
+        with:
+          versionSpec: "6.4.x"
+
+      - name: Determine Version
+        id: set-version # step id used as a reference for output values
+        uses: gittools/actions/gitversion/execute@v4.2.0
+        with:
+          configFilePath: VersionConfig.yml
+
+  build:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    needs: determine-version
     env:
       ACR_LOGIN_SERVER: ${{ vars.ACR_NAME }}.azurecr.io
     steps:
@@ -41,7 +67,7 @@ jobs:
           file: src/api/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/${{ github.repository_owner }}/microcommunication-api:${{ github.run_id }}.${{ github.run_attempt }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ github.repository_owner }}/microcommunication-api:${{ needs.determine-version.outputs.version }}
             ${{ env.ACR_LOGIN_SERVER }}/${{ github.repository_owner }}/microcommunication-api:latest
           cache-from: type=gha,scope=api-${{ github.ref_name }}
           cache-to: type=gha,scope=api-${{ github.ref_name }},mode=max
@@ -53,7 +79,7 @@ jobs:
           file: src/random/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-random:${{ github.run_id }}.${{ github.run_attempt }}
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-random:${{ needs.determine-version.outputs.version }}
             ${{ env.ACR_LOGIN_SERVER }}/microcommunication-random:latest
           cache-from: |
             type=gha,scope=random-${{ github.ref_name }}
@@ -67,7 +93,7 @@ jobs:
           file: src/web/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-web:${{ github.run_id }}.${{ github.run_attempt }}
+            ${{ env.ACR_LOGIN_SERVER }}/microcommunication-web:${{ needs.determine-version.outputs.version }}
             ${{ env.ACR_LOGIN_SERVER }}/microcommunication-web:latest
           cache-from: |
             type=gha,scope=web-${{ github.ref_name }}
