@@ -1,0 +1,63 @@
+name: Setup Infra Helms
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+jobs:
+  helms:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      ACR_LOGIN_SERVER: ${{ vars.ACR_NAME }}.azurecr.io
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Azure CLI
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Kubernetes cluster
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm istio
+        working-directory: ./env/helm/microcommunication
+        run: |
+          helm repo add istio https://istio-release.storage.googleapis.com/charts
+          helm repo update
+
+          helm upgrade --install istiod istio/istiod -n istio-system \
+            --set meshConfig.ingressSelector=istio-ingress \
+            --set meshConfig.ingressService=istio-ingress \
+            --set pilot.env.K8S_INGRESS_NS=istio-ingress \
+            --create-namespace
+
+          helm upgrade --install istio-ingress istio/gateway -n istio-ingress \
+            --set gateway.type=LoadBalancer \
+            --set gateway.name=istio-ingress \
+            --create-namespace
+
+      - name: Helm cert-manager
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+
+          helm upgrade --install cert-manager jetstack/cert-manager \
+              --set installCRDs=true \
+              --namespace cert-manager \
+              --create-namespace

@@ -1,7 +1,7 @@
 ingress:
   enabled: true
   domain: yourdomain.com
-  class: azure-application-gateway
+  class: istio
 
 api:
   image: robinmanuelthiel/microcommunication-api

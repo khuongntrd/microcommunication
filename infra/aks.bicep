@@ -35,7 +35,7 @@ param dnsZoneName string
 var acrPullRoleDefinitionID = '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull Role Definition ID
 var dnsContributorRoleDefinitionID = 'befefa01-2a29-4197-83a8-272ff33ce314' // DNS Zone Contributor Role Definition ID
 
-resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
+resource aks 'Microsoft.ContainerService/managedClusters@2025-09-01' = {
   name: clusterName
   location: location
   identity: {
@@ -57,16 +57,6 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         osType: 'Linux'
         mode: 'System'
       }
-      {
-        name: 'workerpool'
-        osDiskSizeGB: osDiskSizeGB
-        minCount: 0
-        maxCount: 3
-        enableAutoScaling: true
-        vmSize: 'Standard_D2s_v3'
-        osType: 'Linux'
-        mode: 'User'
-      }
     ]
     linuxProfile: {
       adminUsername: linuxAdminUsername
@@ -78,6 +68,20 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         ]
       }
     }
+  }
+}
+
+resource newAgentPool 'Microsoft.ContainerService/managedClusters/agentPools@2025-09-01' = {
+  parent: aks
+  name: 'workerpool' // Agent pool names must be all lowercase and short
+  properties: {
+    vmSize: 'Standard_D2s_v5'
+    osType: 'Linux'
+    minCount: 0
+    maxCount: 2
+    availabilityZones: ['2']
+    mode: 'User' // Use 'User' for non-system pools
+    // ...
   }
 }
 
