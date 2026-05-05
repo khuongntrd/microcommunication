@@ -57,7 +57,7 @@ jobs:
       - name: Set up Azure CLI
         uses: azure/login@v2
         with:
-          client-id: 3109e964-9b90-4fa4-ab01-e3316515bfed
+          client-id: 536de280-28e2-48df-89ba-34ce540c5ade
           tenant-id: 467905e3-e1c6-4be1-beb2-46569ab163bd
           subscription-id: b6cd7f32-7126-452d-8d5f-499e5e962b48
           auth-type: IDENTITY
