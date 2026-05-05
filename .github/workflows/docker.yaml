@@ -60,8 +60,6 @@ jobs:
           client-id: 536de280-28e2-48df-89ba-34ce540c5ade
           tenant-id: 467905e3-e1c6-4be1-beb2-46569ab163bd
           subscription-id: b6cd7f32-7126-452d-8d5f-499e5e962b48
-          auth-type: IDENTITY
-          enable-AzPSSession: true
 
       - name: Log in to ACR
         run: |
