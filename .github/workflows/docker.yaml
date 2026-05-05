@@ -1,4 +1,4 @@
-name: Deploy Blue-Green
+name: CD
 on:
   push:
     branches:
@@ -57,9 +57,9 @@ jobs:
       - name: Set up Azure CLI
         uses: azure/login@v2
         with:
-          client-id: 536de280-28e2-48df-89ba-34ce540c5ade
-          tenant-id: 467905e3-e1c6-4be1-beb2-46569ab163bd
-          subscription-id: b6cd7f32-7126-452d-8d5f-499e5e962b48
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Log in to ACR
         run: |
